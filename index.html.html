@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<meta name="theme-color" content="#09090b" />
+<title>My Weekly Planner</title>
+<link rel="apple-touch-icon" href="889dcda8-6081-4491-ac02-8d2e4be5efbe.png" />
+<link rel="icon" type="image/png" href="889dcda8-6081-4491-ac02-8d2e4be5efbe.png" />
+<meta name="application-name" content="Weekly Planner" />
+<style>
+:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#09090b;color:#f8fafc}
+*{box-sizing:border-box}body{margin:0;background:#09090b;min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+main{width:min(900px,100%);padding:24px 16px 64px;margin:auto}
+header{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:27px;letter-spacing:-.8px;margin:0 0 5px;color:#fafafa}.sub{font-size:13px;color:#9ca3af;margin:0}
+.actions{display:flex;gap:8px;align-items:center}.iconbtn,.today,.add,.save,.cancel,.del{border:0;cursor:pointer;font:inherit}
+.iconbtn,.today{background:#18181b;border:1px solid #3f3f46;border-radius:12px;padding:10px 14px;font-weight:650;color:#fafafa}
+.iconbtn:active,.today:active{background:#27272a}
+.weekline{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}
+#range{font-size:15px;font-weight:700}.summary{font-size:12px;color:#a1a1aa;text-align:right}
+.days{display:grid;grid-template-columns:1fr;gap:12px}.day{background:#18181b;border:1px solid #303036;box-shadow:0 4px 18px #0004;border-radius:16px;overflow:hidden}
+.dayhead{background:#202024;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 14px;border-bottom:1px solid #35353b}
+.datehead{display:flex;align-items:center;gap:9px}.datepill{min-width:39px;min-height:39px;display:grid;place-items:center;border:1px solid #47474f;border-radius:11px;background:#2b2b30;font-weight:750;color:#fafafa}.datepill.current{background:#166534;color:#fff;border-color:#22c55e}.dayname{font-size:15px;font-weight:700}.daymonth{font-size:12px;color:#a1a1aa;margin-top:2px}.count{font-size:12px;color:#a1a1aa}
+.tasks{padding:6px 12px 2px}.task{display:flex;align-items:center;gap:10px;border-bottom:1px solid #303036;min-height:45px}.task:last-child{border-bottom:0}
+.toggle{width:25px;height:25px;border:2px solid #71717a;background:#27272a;border-radius:7px;flex:none;display:grid;place-items:center;color:#fff;font-size:16px;font-weight:bold;padding:0;cursor:pointer}.toggle.done{background:#16a34a;border-color:#22c55e}
+.tasktext{flex:1;min-width:0;padding:11px 0;overflow-wrap:anywhere;font-size:14px;line-height:1.4;color:#f4f4f5}.tasktext.done{color:#92929b;text-decoration:line-through}
+.del{background:transparent;color:#a1a1aa;padding:8px 5px;font-size:21px;line-height:1}.del:hover{color:#fb7185}
+.empty{font-size:13px;color:#85858e;margin:11px 2px}
+.addrow{display:flex;gap:8px;padding:9px 12px 13px}.entry{flex:1;min-width:0;font:inherit;font-size:14px;background:#27272a;border:1px solid #44444c;color:#fafafa;padding:10px 11px;border-radius:10px;outline:none}.entry::placeholder{color:#9ca3af}.entry:focus{border-color:#22c55e;box-shadow:0 0 0 3px #22c55e26}
+.add{background:#15803d;color:#fff;border-radius:10px;padding:10px 13px;font-size:14px;font-weight:700;white-space:nowrap}.add:active{background:#166534}
+.foot{margin:20px 3px;color:#92929b;font-size:12px;line-height:1.5}
+@media(min-width:760px){main{padding-top:38px}.dayhead{min-width:220px}.days{gap:10px}.day{display:grid;grid-template-columns:210px minmax(0,1fr)}.dayhead{border-bottom:0;border-right:1px solid #35353b}.body{min-width:0}.tasks{padding-top:5px}.addrow{padding-top:7px}}
+</style>
+</head>
+<body><main>
+<header><div><h1>Weekly Planner</h1><p class="sub">Your week, one task at a time.</p></div><div class="actions"><button class="iconbtn" id="prev" aria-label="Previous week">←</button><button class="today" id="today">Today</button><button class="iconbtn" id="next" aria-label="Next week">→</button></div></header>
+<div class="weekline"><div id="range"></div><div class="summary" id="summary"></div></div>
+<div class="days" id="days"></div>
+<p class="foot">Tap the square next to a task to mark it complete (green). Tap × to delete a task. Your tasks are saved on this device and in this browser; clearing website data may erase them.</p>
+</main>
+<script>
+(function(){'use strict';
+const KEY='myWeeklyPlanner_v1';let store={};try{store=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){store={}}
+const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dayStart(d){let x=new Date(d.getFullYear(),d.getMonth(),d.getDate());let n=(x.getDay()+6)%7;x.setDate(x.getDate()-n);return x}
+let base=dayStart(new Date());function shift(d,n){let x=new Date(d);x.setDate(x.getDate()+n);return x}
+function dateKey(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){alert('Your browser could not save this task. Please check browser storage settings.')}}
+function el(tag,cls,text){const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=text;return x}
+function draw(){const end=shift(base,6),today=dateKey(new Date());document.getElementById('range').textContent=`${base.getDate()} ${months[base.getMonth()]}${base.getFullYear()!==end.getFullYear()?' '+base.getFullYear():''} – ${end.getDate()} ${months[end.getMonth()]} ${end.getFullYear()}`;
+const host=document.getElementById('days');host.replaceChildren();let total=0,completed=0;
+for(let i=0;i<7;i++){const d=shift(base,i),key=dateKey(d),tasks=Array.isArray(store[key])?store[key]:[];total+=tasks.length;completed+=tasks.filter(t=>t.done).length;
+const card=el('section','day');const h=el('div','dayhead');const datehead=el('div','datehead');const pill=el('div','datepill'+(key===today?' current':''),String(d.getDate()));const labels=el('div');labels.append(el('div','dayname',days[i]),el('div','daymonth',months[d.getMonth()]+' '+d.getFullYear()));datehead.append(pill,labels);h.append(datehead,el('div','count',tasks.filter(t=>t.done).length+'/'+tasks.length+' done'));
+const body=el('div','body'),list=el('div','tasks');if(!tasks.length)list.append(el('p','empty','No tasks yet'));
+tasks.forEach((t,j)=>{const line=el('div','task'),btn=el('button','toggle'+(t.done?' done':''),t.done?'✓':'');btn.type='button';btn.setAttribute('aria-label',t.done?'Mark task incomplete':'Mark task complete');btn.addEventListener('click',()=>{t.done=!t.done;persist();draw()});const txt=el('div','tasktext'+(t.done?' done':''),t.text);const del=el('button','del','×');del.type='button';del.setAttribute('aria-label','Delete '+t.text);del.addEventListener('click',()=>{tasks.splice(j,1);store[key]=tasks;persist();draw()});line.append(btn,txt,del);list.append(line)});
+const form=el('div','addrow'),input=el('input','entry');input.type='text';input.placeholder='Add a task…';input.autocomplete='off';input.maxLength=400;input.setAttribute('aria-label','New task for '+days[i]);const add=el('button','add','+ Add');add.type='button';function addTask(){const value=input.value.trim();if(!value){input.focus();return;}if(!Array.isArray(store[key]))store[key]=[];store[key].push({text:value,done:false});persist();draw();const inputs=document.querySelectorAll('.entry');if(inputs[i])inputs[i].focus();}add.addEventListener('click',addTask);input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addTask();}});form.append(input,add);body.append(list,form);card.append(h,body);host.append(card)}
+document.getElementById('summary').textContent=completed+' of '+total+' tasks complete';}
+document.getElementById('prev').addEventListener('click',()=>{base=shift(base,-7);draw()});document.getElementById('next').addEventListener('click',()=>{base=shift(base,7);draw()});document.getElementById('today').addEventListener('click',()=>{base=dayStart(new Date());draw()});draw();
+})();
+</script></body></html>
